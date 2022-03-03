@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <inttypes.h>
 
 enum mapping_type {
     MT_SINGLE = 0,
@@ -25,6 +26,37 @@ struct mapping {
     unsigned short key;
 };
 
+enum keys_mask {
+    KMASK_LEFT = 1 << 0,
+    KMASK_RIGHT = 1 << 1,
+    KMASK_UP = 1 << 2,
+    KMASK_DOWN = 1 << 3,
+    KMASK_WEST = 1 << 4,
+    KMASK_EAST = 1 << 5,
+    KMASK_NORTH = 1 << 6,
+    KMASK_SOUTH = 1 << 7,
+    KMASK_LT = 1 << 8,
+    KMASK_LB = 1 << 9,
+    KMASK_RT = 1 << 10,
+    KMASK_RB = 1 << 11,
+    KMASK_OPTIONS = 1 << 12,
+    KMASK_SHARE = 1 << 13,
+    KMASK_PS = 1 << 14,
+    KMASK_THUMBL = 1 << 15,
+    KMASK_THUMBR = 1 << 16,
+    KMASK_SIDE_SHIFT = 30,
+};
+
+struct state {
+    uint32_t keys; // keys_mask
+};
+
+enum side {
+    SIDE_NO,
+    SIDE_LEFT,
+    SIDE_RIGHT,
+};
+
 #define MAPPINGS_NUM 10
 struct mapping g_mapping[MAPPINGS_NUM] = {
     { .type = MT_SINGLE, .first = { BTN_SOUTH }, .key = KEY_ENTER, },
@@ -35,25 +67,21 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
 
 bool should_stop = false;
 
-void sigint_handler(int _value)
+static void sigint_handler(int _value)
 {
     (void) _value;
     should_stop = true;
     printf("SIGINT handled\n");
 }
 
-void setup_output_device(int fd) {
+static void setup_output_device(int fd) {
     /*
      * The ioctls below will enable the device that is about to be
      * created, to pass key events, in this case the space key.
      */
     ioctl(fd, UI_SET_EVBIT, EV_KEY);
-    // TODO do not forget to register all keys that are gonna be supported in
-    // the mapping configuration
-    ioctl(fd, UI_SET_KEYBIT, KEY_SPACE);
-    ioctl(fd, UI_SET_KEYBIT, KEY_ENTER);
-    ioctl(fd, UI_SET_KEYBIT, KEY_ESC);
-    ioctl(fd, UI_SET_KEYBIT, KEY_BACKSPACE);
+    for (ssize_t i = 1; i < KEY_MAX; i++)
+        ioctl(fd, UI_SET_KEYBIT, i);
     struct uinput_setup usetup;
     memset(&usetup, 0, sizeof(usetup));
     usetup.id.bustype = BUS_USB;
@@ -64,7 +92,7 @@ void setup_output_device(int fd) {
     ioctl(fd, UI_DEV_CREATE);
 }
 
-void emit(int fd, int type, int code, int val)
+static void emit(int fd, int type, int code, int val)
 {
     struct input_event ie = {
         .type = type,
@@ -77,6 +105,141 @@ void emit(int fd, int type, int code, int val)
         },
     };
     write(fd, &ie, sizeof(ie));
+}
+
+static void emulate_key_press(int ofd, int code)
+{
+    emit(ofd, EV_KEY, code, 1);
+    emit(ofd, EV_SYN, SYN_REPORT, 0);
+}
+
+static void emulate_key_release(int ofd, int code)
+{
+    emit(ofd, EV_KEY, code, 0);
+    emit(ofd, EV_SYN, SYN_REPORT, 0);
+}
+
+static void emulate_key(int ofd, int code)
+{
+    emulate_key_press(ofd, code);
+    emulate_key_release(ofd, code);
+}
+
+static enum side which_side_key(struct input_event ev) {
+    if (ev.type == EV_KEY) {
+        switch (ev.code) {
+        case BTN_SOUTH:
+        case BTN_EAST:
+        case BTN_WEST:
+        case BTN_NORTH:
+            return SIDE_RIGHT;
+        };
+    } else if (ev.type == EV_ABS) {
+        /*
+         * d-pad is EV_ABS
+         * left-right: code ABS_HAT0X, left=-1, right=1
+         * down-up: code ABS_HAT0Y, up=-1, down=1
+         */
+        if (ev.code == ABS_HAT0X || ev.code == ABS_HAT0Y)
+            return SIDE_LEFT;
+    }
+    return SIDE_NO;
+}
+
+static enum side which_side_state(struct state state) {
+    return (state.keys >> KMASK_SIDE_SHIFT) & 3;
+}
+
+static struct state keypress(struct state state, struct input_event ev, int ofd) {
+    if (which_side_state(state) == SIDE_NO) {
+        state.keys |= ((uint32_t)which_side_key(ev) & 3) << KMASK_SIDE_SHIFT;
+    }
+    if (ev.type == EV_KEY) {
+        switch (ev.code) {
+        case BTN_SOUTH:
+            state.keys |= KMASK_SOUTH;
+            break;
+        case BTN_EAST:
+            state.keys |= KMASK_EAST;
+            break;
+        case BTN_WEST:
+            state.keys |= KMASK_WEST;
+            break;
+        case BTN_NORTH:
+            state.keys |= KMASK_NORTH;
+            break;
+        case BTN_TL2:
+            // Shift
+            state.keys |= KMASK_LT;
+            emulate_key_press(ofd, KEY_LEFTSHIFT);
+            break;
+        case BTN_TR2:
+            // Control
+            state.keys |= KMASK_RT;
+            emulate_key_press(ofd, KEY_LEFTCTRL);
+            break;
+        case BTN_TL:
+            // Super
+            state.keys |= KMASK_LB;
+            emulate_key_press(ofd, KEY_LEFTMETA);
+            break;
+        case BTN_TR:
+            // Alt
+            state.keys |= KMASK_RB;
+            emulate_key_press(ofd, KEY_LEFTALT);
+            break;
+        case BTN_SELECT:
+            state.keys |= KMASK_SHARE;
+            break;
+        case BTN_START:
+            state.keys |= KMASK_OPTIONS;
+            break;
+        };
+    } else if (ev.type == EV_ABS) {
+        /*
+         * d-pad is EV_ABS
+         * left-right: code ABS_HAT0X, left=-1, right=1
+         * down-up: code ABS_HAT0Y, up=-1, down=1
+         */
+        if (ev.code == ABS_HAT0X) {
+            if (ev.value == -1) {
+                state.keys |= KMASK_LEFT;
+            } else if (ev.value == 1) {
+                state.keys |= KMASK_RIGHT;
+            }
+        } else if (ev.code == ABS_HAT0Y) {
+            if (ev.value == -1) {
+                state.keys |= KMASK_UP;
+            } else if (ev.value == 1) {
+                state.keys |= KMASK_DOWN;
+            }
+        }
+    }
+    return state;
+}
+
+static struct state keyrelease(struct state state, struct input_event ev, int ofd) {
+    if (ev.type == EV_KEY) {
+        switch (ev.code) {
+        case BTN_TL2:
+            // Shift
+            emulate_key_release(ofd, KEY_LEFTSHIFT);
+            break;
+        case BTN_TR2:
+            // Control
+            emulate_key_release(ofd, KEY_LEFTCTRL);
+            break;
+        case BTN_TL:
+            // Super
+            emulate_key_release(ofd, KEY_LEFTMETA);
+            break;
+        case BTN_TR:
+            // Alt
+            emulate_key_release(ofd, KEY_LEFTALT);
+            break;
+        };
+    }
+    return state;
 }
 
 int main(int argc, char *argv[])
@@ -111,12 +274,23 @@ int main(int argc, char *argv[])
      */
     sleep(1);
 
+    struct state state = {0};
+
     while (!should_stop) {
         struct input_event ev;
         ssize_t ret = read(ifd, &ev, sizeof(ev));
+        if (ret == -1) {
+            perror("read");
+            exit(1);
+        }
         switch (ev.type) {
         case EV_KEY:
             printf("EV_KEY, code=%u, value=%d\n", ev.code, ev.value);
+            if (ev.value == 1) {
+                state = keypress(state, ev, ofd);
+            } else if (ev.value == 0) {
+                state = keyrelease(state, ev, ofd);
+            }
             for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
                 struct mapping mapping = g_mapping[i];
                 if (mapping.type == MT_SINGLE && mapping.first[0] == ev.code && ev.value == 0) {
@@ -135,27 +309,17 @@ int main(int argc, char *argv[])
              */
             if (ev.code == ABS_HAT0X || ev.code == ABS_HAT0Y) {
                 printf("type=%u, code=%u, value=%d\n", ev.type, ev.code, ev.value);
+                if (ev.value == 1 || ev.value == -1) {
+                    state = keypress(state, ev, ofd);
+                } else if (ev.value == 0) {
+                    state = keyrelease(state, ev, ofd);
+                }
             }
             break;
-        case EV_SYN:
-            break;
         default:
-            printf("type=%u, code=%u, value=%d\n", ev.type, ev.code, ev.value);
             break;
         }
     }
-
-    /* Key press, report the event, send key release, and report again */
-    emit(ofd, EV_KEY, KEY_SPACE, 1);
-    emit(ofd, EV_SYN, SYN_REPORT, 0);
-    emit(ofd, EV_KEY, KEY_SPACE, 0);
-    emit(ofd, EV_SYN, SYN_REPORT, 0);
-
-    /*
-     * Give userspace some time to read the events before we destroy the
-     * device with UI_DEV_DESTOY.
-     */
-    //sleep(1);
 
     ioctl(ofd, UI_DEV_DESTROY);
     close(ofd);
