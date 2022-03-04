@@ -18,12 +18,16 @@ enum mapping_type {
     MT_DOUBLE_DOUBLE = 5,
 };
 
-// TODO Perhaps scancodes are necessary too
+enum side {
+    SIDE_NO = 0,
+    SIDE_LEFT = 1,
+    SIDE_RIGHT = 2,
+};
+
 struct mapping {
-    enum mapping_type type;
-    unsigned short first[2];
-    unsigned short second[2];
-    unsigned short key;
+    enum side first;
+    uint32_t keys;
+    uint16_t code;
 };
 
 enum keys_mask {
@@ -51,18 +55,48 @@ struct state {
     uint32_t keys; // keys_mask
 };
 
-enum side {
-    SIDE_NO,
-    SIDE_LEFT,
-    SIDE_RIGHT,
-};
-
-#define MAPPINGS_NUM 10
+#define MAPPINGS_NUM 105
 struct mapping g_mapping[MAPPINGS_NUM] = {
-    { .type = MT_SINGLE, .first = { BTN_SOUTH }, .key = KEY_ENTER, },
-    { .type = MT_SINGLE, .first = { BTN_EAST }, .key = KEY_SPACE, },
-    { .type = MT_SINGLE, .first = { BTN_WEST }, .key = KEY_BACKSPACE, },
-    { .type = MT_SINGLE, .first = { BTN_NORTH }, .key = KEY_ESC, },
+    { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH,    .code = KEY_ENTER },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST,     .code = KEY_SPACE },
+    { .first = SIDE_RIGHT,  .keys = KMASK_NORTH,    .code = KEY_ESC },
+    { .first = SIDE_RIGHT,  .keys = KMASK_WEST,     .code = KEY_BACKSPACE },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN,     .code = KEY_GRAVE },
+    { .first = SIDE_LEFT,   .keys = KMASK_LEFT,     .code = KEY_TAB },
+    { .first = SIDE_LEFT,   .keys = KMASK_UP,       .code = KEY_CAPSLOCK },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT,    .code = KEY_BACKSLASH },
+    { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH | KMASK_DOWN,   .code = KEY_A },
+    { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH | KMASK_LEFT,   .code = KEY_B },
+    { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH | KMASK_UP,     .code = KEY_C },
+    { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH | KMASK_RIGHT,  .code = KEY_D },
+    { .first = SIDE_RIGHT,  .keys = KMASK_WEST | KMASK_DOWN,    .code = KEY_E },
+    { .first = SIDE_RIGHT,  .keys = KMASK_WEST | KMASK_LEFT,    .code = KEY_F },
+    { .first = SIDE_RIGHT,  .keys = KMASK_WEST | KMASK_UP,      .code = KEY_G },
+    { .first = SIDE_RIGHT,  .keys = KMASK_WEST | KMASK_RIGHT,   .code = KEY_H },
+    { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_DOWN,   .code = KEY_I },
+    { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_LEFT,   .code = KEY_J },
+    { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_UP,     .code = KEY_K },
+    { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_RIGHT,  .code = KEY_L },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_DOWN,    .code = KEY_M },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_LEFT,    .code = KEY_N },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_UP,      .code = KEY_O },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_RIGHT,   .code = KEY_P },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_SOUTH,   .code = KEY_Q },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_WEST,    .code = KEY_R },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_NORTH,   .code = KEY_S },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_EAST,    .code = KEY_T },
+    { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_SOUTH,   .code = KEY_U },
+    { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_WEST,    .code = KEY_V },
+    { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_NORTH,   .code = KEY_W },
+    { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_EAST,    .code = KEY_X },
+    { .first = SIDE_LEFT,   .keys = KMASK_UP | KMASK_SOUTH,     .code = KEY_Y },
+    { .first = SIDE_LEFT,   .keys = KMASK_UP | KMASK_WEST,      .code = KEY_Z },
+    { .first = SIDE_LEFT,   .keys = KMASK_UP | KMASK_NORTH,     .code = KEY_LEFTBRACE },
+    { .first = SIDE_LEFT,   .keys = KMASK_UP | KMASK_EAST,      .code = KEY_RIGHTBRACE },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_SOUTH,  .code = KEY_COMMA },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_WEST,   .code = KEY_DOT },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_NORTH,  .code = KEY_SEMICOLON },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_EAST,   .code = KEY_APOSTROPHE },
 };
 
 bool should_stop = false;
@@ -152,7 +186,9 @@ static enum side which_side_state(struct state state) {
 
 static struct state keypress(struct state state, struct input_event ev, int ofd) {
     if (which_side_state(state) == SIDE_NO) {
-        state.keys |= ((uint32_t)which_side_key(ev) & 3) << KMASK_SIDE_SHIFT;
+        const enum side side = which_side_key(ev);
+        printf("first = %s\n", side == SIDE_LEFT ? "left" : side == SIDE_RIGHT ? "right" : "no");
+        state.keys |= ((uint32_t)side & 3) << KMASK_SIDE_SHIFT;
     }
     if (ev.type == EV_KEY) {
         switch (ev.code) {
@@ -219,26 +255,67 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
 }
 
 static struct state keyrelease(struct state state, struct input_event ev, int ofd) {
+    for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
+        struct mapping mapping = g_mapping[i];
+        if (mapping.code && mapping.first == which_side_key(ev) &&
+                (state.keys & ~(3 << KMASK_SIDE_SHIFT)) == mapping.keys) {
+            emulate_key(ofd, mapping.code);
+        }
+    }
     if (ev.type == EV_KEY) {
         switch (ev.code) {
+        case BTN_SOUTH:
+            state.keys &= ~KMASK_SOUTH;
+            break;
+        case BTN_EAST:
+            state.keys &= ~KMASK_EAST;
+            break;
+        case BTN_WEST:
+            state.keys &= ~KMASK_WEST;
+            break;
+        case BTN_NORTH:
+            state.keys &= ~KMASK_NORTH;
+            break;
         case BTN_TL2:
             // Shift
+            state.keys &= ~KMASK_LT;
             emulate_key_release(ofd, KEY_LEFTSHIFT);
             break;
         case BTN_TR2:
             // Control
+            state.keys &= ~KMASK_RT;
             emulate_key_release(ofd, KEY_LEFTCTRL);
             break;
         case BTN_TL:
             // Super
+            state.keys &= ~KMASK_LB;
             emulate_key_release(ofd, KEY_LEFTMETA);
             break;
         case BTN_TR:
             // Alt
+            state.keys &= ~KMASK_RB;
             emulate_key_release(ofd, KEY_LEFTALT);
             break;
+        case BTN_SELECT:
+            state.keys &= ~KMASK_SHARE;
+            break;
+        case BTN_START:
+            state.keys &= ~KMASK_OPTIONS;
+            break;
         };
+    } else if (ev.type == EV_ABS) {
+        /*
+         * d-pad is EV_ABS
+         * left-right: code ABS_HAT0X, left=-1, right=1
+         * down-up: code ABS_HAT0Y, up=-1, down=1
+         */
+        if (ev.code == ABS_HAT0X) {
+            state.keys &= ~(KMASK_LEFT | KMASK_RIGHT);
+        } else if (ev.code == ABS_HAT0Y) {
+            state.keys &= ~(KMASK_UP | KMASK_DOWN);
+        }
     }
+    if ((state.keys & ~(3 << KMASK_SIDE_SHIFT)) == 0) state.keys &= ~(3 << KMASK_SIDE_SHIFT);
     return state;
 }
 
@@ -290,15 +367,6 @@ int main(int argc, char *argv[])
                 state = keypress(state, ev, ofd);
             } else if (ev.value == 0) {
                 state = keyrelease(state, ev, ofd);
-            }
-            for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
-                struct mapping mapping = g_mapping[i];
-                if (mapping.type == MT_SINGLE && mapping.first[0] == ev.code && ev.value == 0) {
-                    emit(ofd, EV_KEY, mapping.key, 1);
-                    emit(ofd, EV_SYN, SYN_REPORT, 0);
-                    emit(ofd, EV_KEY, mapping.key, 0);
-                    emit(ofd, EV_SYN, SYN_REPORT, 0);
-                }
             }
             break;
         case EV_ABS:
