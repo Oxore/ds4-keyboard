@@ -80,7 +80,7 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH,    .code = KEY_ESC },
     { .first = SIDE_RIGHT,  .keys = KMASK_EAST,     .code = KEY_SPACE },
     /* Left single */
-    { .first = SIDE_LEFT,   .keys = KMASK_DOWN,     .code = KEY_MENU },
+    { .first = SIDE_LEFT,   .keys = KMASK_DOWN,     .code = KEY_COMPOSE },
     { .first = SIDE_LEFT,   .keys = KMASK_LEFT,     .code = KEY_TAB },
     { .first = SIDE_LEFT,   .keys = KMASK_UP,       .code = KEY_DELETE},
     { .first = SIDE_LEFT,   .keys = KMASK_RIGHT,    .code = KEY_CAPSLOCK },
@@ -275,14 +275,14 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             state.keys |= KMASK_PRESSED;
             break;
         case BTN_TL2:
-            // Shift
+            // Control
             state.keys |= KMASK_LT;
-            emulate_key_press(ofd, KEY_LEFTSHIFT);
+            emulate_key_press(ofd, KEY_LEFTCTRL);
             break;
         case BTN_TR2:
-            // Control
+            // Shift
             state.keys |= KMASK_RT;
-            emulate_key_press(ofd, KEY_LEFTCTRL);
+            emulate_key_press(ofd, KEY_LEFTSHIFT);
             break;
         case BTN_TL:
             // Super
@@ -389,14 +389,14 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
             state.keys &= ~KMASK_PRESSED;
             break;
         case BTN_TL2:
-            // Shift
+            // Control
             state.keys &= ~KMASK_LT;
-            emulate_key_release(ofd, KEY_LEFTSHIFT);
+            emulate_key_release(ofd, KEY_LEFTCTRL);
             break;
         case BTN_TR2:
-            // Control
+            // Shift
             state.keys &= ~KMASK_RT;
-            emulate_key_release(ofd, KEY_LEFTCTRL);
+            emulate_key_release(ofd, KEY_LEFTSHIFT);
             break;
         case BTN_TL:
             // Super
