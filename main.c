@@ -9,6 +9,9 @@
 #include <signal.h>
 #include <inttypes.h>
 
+// TODO Impl repeating key when right thumb-stick tilted enough in any way
+// TODO Impl switching between keyboard and regular mode by BTN_MODE (the PS key)
+
 /* Analog Binarization Threshold */
 #define ABT 64
 /* Analog Binarization Hysteresis */
@@ -160,12 +163,21 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
 };
 
 bool should_stop = false;
+int ifd = -1;
 
 static void sigint_handler(int _value)
 {
     (void) _value;
     should_stop = true;
     printf("Received SIGINT, quitting...\n");
+    {
+        int ret = ioctl(ifd, EVIOCGRAB, (void *)0);
+        if (ret != 0) {
+            fprintf(stderr, "Ungrab failed: ");
+            perror("ioctl(ifd, EVIOCGRAB, 0)");
+            exit(1);
+        }
+    }
     // Set default handler and re-issue the signal to unblock the read(3p) call
     signal(SIGINT, SIG_DFL);
     kill(0, SIGINT);
@@ -458,11 +470,19 @@ int main(int argc, char *argv[])
         exit(1);
     }
     const char *input_path = argv[1];
-    int ifd = open(input_path, O_RDONLY);
+    ifd = open(input_path, O_RDONLY);
     if (ifd == -1) {
         fprintf(stderr, "\"%s\": ", input_path);
         perror("open");
         exit(1);
+    }
+    {
+        int ret = ioctl(ifd, EVIOCGRAB, (void *)1);
+        if (ret != 0) {
+            fprintf(stderr, "Grab failed: ");
+            perror("ioctl(ifd, EVIOCGRAB, 1)");
+            exit(1);
+        }
     }
     int ofd = open("/dev/uinput", O_WRONLY);
     if (ofd == -1) {
