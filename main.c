@@ -250,7 +250,7 @@ static enum side which_side_state(struct state state) {
 }
 
 static struct state keypress(struct state state, struct input_event ev, int ofd) {
-    printf("<- EV_KEY, code=%u, value=%d\n", ev.code, ev.value);
+    printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (which_side_state(state) == SIDE_NO) {
         const enum side side = which_side_key(ev);
         printf("first = %s\n", side == SIDE_LEFT ? "left" : side == SIDE_RIGHT ? "right" : "no");
@@ -360,7 +360,7 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
 }
 
 static struct state keyrelease(struct state state, struct input_event ev, int ofd) {
-    printf("<- EV_KEY, code=%u, value=%d\n", ev.code, ev.value);
+    printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (state.keys & KMASK_PRESSED) {
         for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
             struct mapping mapping = g_mapping[i];
@@ -473,15 +473,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, sigint_handler);
 
     setup_output_device(ofd);
-
-    /*
-     * On UI_DEV_CREATE the kernel will create the device node for this
-     * device. We are inserting a pause here so that userspace has time
-     * to detect, initialize the new device, and can start listening to
-     * the event, otherwise it will not notice the event we are about
-     * to send. This pause is only needed in our example code!
-     */
-    sleep(1);
 
     struct state state = {0};
     int8_t abs_previous[ABS_CNT] = {0};
