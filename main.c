@@ -9,6 +9,11 @@
 #include <signal.h>
 #include <inttypes.h>
 
+/* Analog Binarization Threshold */
+#define ABT 64
+/* Analog Binarization Hysteresis */
+#define ABH 20
+
 enum mapping_type {
     MT_SINGLE = 0,
     MT_DOUBLE = 1,
@@ -48,6 +53,14 @@ enum keys_mask {
     KMASK_PS = 1 << 14,
     KMASK_THUMBL = 1 << 15,
     KMASK_THUMBR = 1 << 16,
+    KMASK_THUMBL_DOWN = 1 << 17,
+    KMASK_THUMBL_UP = 1 << 18,
+    KMASK_THUMBL_LEFT = 1 << 19,
+    KMASK_THUMBL_RIGHT = 1 << 20,
+    KMASK_THUMBR_DOWN = 1 << 21,
+    KMASK_THUMBR_UP = 1 << 22,
+    KMASK_THUMBR_LEFT = 1 << 23,
+    KMASK_THUMBR_RIGHT = 1 << 24,
     KMASK_PRESSED = 1 << 29,
     KMASK_SIDE_SHIFT = 30,
     KMASK_CHORD_KEYS =
@@ -84,10 +97,10 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_UP,     .code = KEY_W },
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_DOWN,   .code = KEY_E },
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_RIGHT,  .code = KEY_R },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_LEFT,    .code = KEY_GRAVE },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_UP,      .code = KEY_BACKSLASH },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_DOWN,    .code = KEY_SLASH },
-    //{ .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_RIGHT,   .code = KEY_ },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_LEFT,    .code = KEY_T },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_UP,      .code = KEY_Y },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_DOWN,    .code = KEY_SEMICOLON },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_RIGHT,   .code = KEY_APOSTROPHE },
     /* Left single to right single */
     { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_WEST,    .code = KEY_LEFTBRACE },
     { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_SOUTH,   .code = KEY_COMMA },
@@ -118,10 +131,10 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_WEST | KMASK_UP,     .code = KEY_F2 },
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_WEST | KMASK_DOWN,   .code = KEY_F3 },
     { .first = SIDE_RIGHT,  .keys = KMASK_NORTH | KMASK_WEST | KMASK_RIGHT,  .code = KEY_F4 },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_LEFT,   .code = KEY_LEFT },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_UP,     .code = KEY_UP },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_DOWN,   .code = KEY_DOWN },
-    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_RIGHT,  .code = KEY_RIGHT },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_LEFT,   .code = KEY_HOME },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_UP,     .code = KEY_PAGEUP },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_DOWN,   .code = KEY_PAGEDOWN },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_RIGHT,  .code = KEY_END },
     /* Left double to right single */
     { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_DOWN | KMASK_WEST,    .code = KEY_5 },
     { .first = SIDE_LEFT,   .keys = KMASK_LEFT | KMASK_DOWN | KMASK_SOUTH,   .code = KEY_6 },
@@ -135,15 +148,15 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_RIGHT | KMASK_SOUTH,   .code = KEY_0 },
     { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_RIGHT | KMASK_NORTH,   .code = KEY_MINUS },
     { .first = SIDE_LEFT,   .keys = KMASK_DOWN | KMASK_RIGHT | KMASK_EAST,    .code = KEY_EQUAL },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_WEST,   .code = KEY_HOME },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_SOUTH,  .code = KEY_PAGEDOWN },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_NORTH,  .code = KEY_PAGEUP },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_EAST,   .code = KEY_END },
-    /* Left double to right double */
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_WEST | KMASK_SOUTH,  .code = KEY_INSERT },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_SOUTH | KMASK_EAST,  .code = KEY_PAUSE },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_NORTH | KMASK_WEST,  .code = KEY_SCROLLLOCK },
-    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_EAST | KMASK_NORTH,  .code = KEY_SYSRQ },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_WEST,   .code = KEY_GRAVE },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_SOUTH,  .code = KEY_BACKSLASH },
+    { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_NORTH,  .code = KEY_SLASH },
+    // { .first = SIDE_LEFT,   .keys = KMASK_RIGHT | KMASK_UP | KMASK_EAST,   .code = KEY_ },
+    /* Right double to left double */
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_LEFT | KMASK_DOWN,     .code = KEY_INSERT },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_UP | KMASK_LEFT,       .code = KEY_SCROLLLOCK },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_DOWN | KMASK_RIGHT,    .code = KEY_PAUSE },
+    { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_RIGHT | KMASK_UP,      .code = KEY_SYSRQ },
 };
 
 bool should_stop = false;
@@ -182,7 +195,7 @@ static void emit(int fd, int type, int code, int val)
         .type = type,
         .code = code,
         .value = val,
-        /* timestamp values below are ignored */
+        // TODO timestamp?
         .time = {
             .tv_sec = 0,
             .tv_usec = 0,
@@ -287,6 +300,9 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
         case BTN_START:
             state.keys |= KMASK_OPTIONS;
             break;
+        case BTN_MODE:
+            state.keys |= KMASK_PS;
+            break;
         };
     } else if (ev.type == EV_ABS) {
         /*
@@ -309,6 +325,34 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             } else if (ev.value == 1) {
                 state.keys |= KMASK_DOWN;
                 state.keys |= KMASK_PRESSED;
+            }
+        } else if (ev.code == ABS_X) {
+            if (ev.value == -1) {
+                emulate_key_press(ofd, KEY_LEFT);
+                state.keys |= KMASK_THUMBL_LEFT;
+            } else if (ev.value == 1) {
+                emulate_key_press(ofd, KEY_RIGHT);
+                state.keys |= KMASK_THUMBL_RIGHT;
+            }
+        } else if (ev.code == ABS_Y) {
+            if (ev.value == -1) {
+                emulate_key_press(ofd, KEY_UP);
+                state.keys |= KMASK_THUMBL_UP;
+            } else if (ev.value == 1) {
+                emulate_key_press(ofd, KEY_DOWN);
+                state.keys |= KMASK_THUMBL_DOWN;
+            }
+        } else if (ev.code == ABS_RX) {
+            if (ev.value == -1) {
+                state.keys |= KMASK_THUMBR_LEFT;
+            } else if (ev.value == 1) {
+                state.keys |= KMASK_THUMBR_RIGHT;
+            }
+        } else if (ev.code == ABS_RY) {
+            if (ev.value == -1) {
+                state.keys |= KMASK_THUMBR_UP;
+            } else if (ev.value == 1) {
+                state.keys |= KMASK_THUMBR_DOWN;
             }
         }
     }
@@ -379,10 +423,28 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
          */
         if (ev.code == ABS_HAT0X) {
             state.keys &= ~(KMASK_LEFT | KMASK_RIGHT);
+            /* D-pad takes part in chords too */
             state.keys &= ~KMASK_PRESSED;
         } else if (ev.code == ABS_HAT0Y) {
             state.keys &= ~(KMASK_UP | KMASK_DOWN);
+            /* D-pad takes part in chords too */
             state.keys &= ~KMASK_PRESSED;
+        } else if (ev.code == ABS_X) {
+            if (state.keys & KMASK_THUMBL_LEFT)
+                emulate_key_release(ofd, KEY_LEFT);
+            else if (state.keys & KMASK_THUMBL_RIGHT)
+                emulate_key_release(ofd, KEY_RIGHT);
+            state.keys &= ~(KMASK_THUMBL_LEFT | KMASK_THUMBL_RIGHT);
+        } else if (ev.code == ABS_Y) {
+            if (state.keys & KMASK_THUMBL_UP)
+                emulate_key_release(ofd, KEY_UP);
+            else if (state.keys & KMASK_THUMBL_DOWN)
+                emulate_key_release(ofd, KEY_DOWN);
+            state.keys &= ~(KMASK_THUMBL_UP | KMASK_THUMBL_DOWN);
+        } else if (ev.code == ABS_RX) {
+            state.keys &= ~(KMASK_THUMBR_LEFT | KMASK_THUMBR_RIGHT);
+        } else if (ev.code == ABS_RY) {
+            state.keys &= ~(KMASK_THUMBR_UP | KMASK_THUMBR_DOWN);
         }
     }
     if ((state.keys & ~(3 << KMASK_SIDE_SHIFT)) == 0) state.keys &= ~(3 << KMASK_SIDE_SHIFT);
@@ -422,6 +484,7 @@ int main(int argc, char *argv[])
     sleep(1);
 
     struct state state = {0};
+    int8_t abs_previous[ABS_CNT] = {0};
 
     while (!should_stop) {
         struct input_event ev;
@@ -449,6 +512,38 @@ int main(int argc, char *argv[])
                     state = keypress(state, ev, ofd);
                 } else if (ev.value == 0) {
                     state = keyrelease(state, ev, ofd);
+                }
+            } else if (ev.code == ABS_X || ev.code == ABS_Y || ev.code == ABS_RX || ev.code == ABS_RY) {
+                /*
+                 * Center stick position is about 127 or 128 on any axis.
+                 * Gonna convert these values to be consistent with d-pad
+                 * "analog" values.
+                 */
+                if ((ev.value - INT8_MAX) > (ABT + ABH)) {
+                    ev.value = 1;
+                } else if ((ev.value - INT8_MAX) < -(ABT + ABH)) {
+                    ev.value = -1;
+                } else if (((ev.value - INT8_MAX) > -(ABT - ABH)) &&
+                        ((ev.value - INT8_MAX) < (ABT - ABH))) {
+                    ev.value = 0;
+                } else {
+                    break;
+                }
+                /* Some filtering with abs_previous to mitigate duplicate events */
+                if (abs_previous[ev.code] != ev.value) {
+                    if (ev.value == 1 || ev.value == -1) {
+                        if (abs_previous[ev.code] != 0) {
+                            const int8_t value = ev.value;
+                            ev.value = 0;
+                            state = keyrelease(state, ev, ofd);
+                            ev.value = value;
+                        }
+                        state = keypress(state, ev, ofd);
+                        abs_previous[ev.code] = ev.value;
+                    } else if (ev.value == 0) {
+                        state = keyrelease(state, ev, ofd);
+                        abs_previous[ev.code] = ev.value;
+                    }
                 }
             }
             break;
