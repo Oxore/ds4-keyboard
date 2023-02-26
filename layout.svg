@@ -8,7 +8,7 @@
    version="1.1"
    id="svg5"
    sodipodi:docname="layout.svg"
-   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
    inkscape:export-filename="/home/oxore/Documents/prog/c/Uncategorized/virtual-keyboard/layout.png"
    inkscape:export-xdpi="300"
    inkscape:export-ydpi="300"
@@ -26,18 +26,20 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="2.0000001"
-     inkscape:cx="674.24998"
-     inkscape:cy="186.25"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="311.48052"
+     inkscape:cy="335.1686"
      inkscape:window-width="2560"
-     inkscape:window-height="1058"
+     inkscape:window-height="1057"
      inkscape:window-x="0"
-     inkscape:window-y="22"
+     inkscape:window-y="23"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      showguides="false"
      inkscape:guide-bbox="true"
-     inkscape:lockguides="false">
+     inkscape:lockguides="false"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1">
     <sodipodi:guide
        position="-134.45709,276.1548"
        orientation="1,0"
@@ -135,11 +137,13 @@
     <sodipodi:guide
        position="151.73854,141.86979"
        orientation="1,0"
-       id="guide14161" />
+       id="guide14161"
+       inkscape:locked="false" />
     <sodipodi:guide
        position="270.94744,163.16027"
        orientation="1,0"
-       id="guide14195" />
+       id="guide14195"
+       inkscape:locked="false" />
     <sodipodi:guide
        position="188,182.0174"
        orientation="-1,0"
@@ -150,7 +154,8 @@
     <sodipodi:guide
        position="202.12979,167.78714"
        orientation="1,0"
-       id="guide14201" />
+       id="guide14201"
+       inkscape:locked="false" />
     <inkscape:grid
        type="xygrid"
        id="grid17983" />
@@ -4489,7 +4494,7 @@
        id="g10715"
        transform="matrix(0.5,0,0,0.5,148.48112,12.631048)">
       <rect
-         style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linejoin:round;stroke-dasharray:6.00001, 1"
+         style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linejoin:round;stroke-dasharray:none"
          id="rect9751"
          width="68.287361"
          height="46.397991"
@@ -4634,6 +4639,52 @@
              x="-54.222599"
              y="170.37177"
              id="tspan533217">and usual dualshock mode</tspan></text>
+      </g>
+      <g
+         id="g307860-3"
+         transform="translate(-91.25788,21.249376)"
+         style="stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke:#ff0000">
+        <rect
+           height="7.3990045"
+           width="48.712379"
+           y="160.68263"
+           x="-53.886993"
+           id="rect1604-6"
+           style="fill:#ffffff;stroke:#ff0000;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none" />
+        <text
+           xml:space="preserve"
+           style="font-weight:bold;font-size:2.82222px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke:none;fill:#ff0000"
+           x="-29.482573"
+           y="165.1497"
+           id="text301519-7"><tspan
+             sodipodi:role="line"
+             id="tspan301517-5"
+             style="font-size:2.82222px;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke:none;fill:#ff0000"
+             x="-29.482573"
+             y="165.1497">Currently not implemented</tspan></text>
+      </g>
+      <g
+         id="g307860-3-3"
+         transform="translate(-178.33217,18.678992)"
+         style="stroke:#ff0000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none">
+        <rect
+           height="7.3990045"
+           width="48.712379"
+           y="160.68263"
+           x="-53.886993"
+           id="rect1604-6-5"
+           style="fill:#ffffff;stroke:#ff0000;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none" />
+        <text
+           xml:space="preserve"
+           style="font-weight:bold;font-size:2.82222px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
+           x="-29.482573"
+           y="165.1497"
+           id="text301519-7-6"><tspan
+             sodipodi:role="line"
+             id="tspan301517-5-2"
+             style="font-size:2.82222px;fill:#ff0000;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
+             x="-29.482573"
+             y="165.1497">Currently not implemented</tspan></text>
       </g>
       <g
          id="g4647"
@@ -5572,28 +5623,28 @@
          id="g500465"
          transform="translate(96.46383,50.344244)">
         <rect
-           height="18.839725"
-           width="28.259586"
+           height="18.839722"
+           width="42.613228"
            y="175.00012"
-           x="-219.12376"
+           x="-220.11902"
            id="rect1602"
            style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none" />
         <text
            xml:space="preserve"
            style="font-size:5.64444px;line-height:1.25;font-family:sans-serif;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
-           x="-205.03119"
-           y="182.99643"
+           x="-198.79448"
+           y="182.44939"
            id="text21174-3-7"><tspan
              sodipodi:role="line"
              style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:5.64444px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';text-align:center;text-anchor:middle;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
-             x="-205.03119"
-             y="182.99643"
+             x="-198.79448"
+             y="182.44939"
              id="tspan39089-3">Left</tspan><tspan
              sodipodi:role="line"
              style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:5.64444px;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';text-align:center;text-anchor:middle;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
-             x="-205.03119"
-             y="190.05199"
-             id="tspan45159">Meta</tspan></text>
+             x="-198.79448"
+             y="189.50494"
+             id="tspan45159">Super/Win</tspan></text>
       </g>
       <path
          style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#DotS)"

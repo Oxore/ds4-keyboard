@@ -58,7 +58,7 @@ The line `H: Handlers=js0 event23` is what wee need. `event23` is the gamepad de
 Once again, if you are planning to use virtual keyboard as `user`, run this as root:
 
 ```
-chown oxore:oxore -R /dev/input/event23
+chown user:user -R /dev/input/event23
 ```
 
 Then run the program like this:
