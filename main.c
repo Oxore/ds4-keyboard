@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: Unlicense
+ */
+
 #include <linux/uinput.h>
 #include <unistd.h>
 #include <fcntl.h>
