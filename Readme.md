@@ -3,7 +3,7 @@
 
 This is a proof of concept implementation of virtual keyboard device that
 enables you to press any of these keyboard buttons with Dualshock 4 gamepad. It
-currently words only on Linux and have non-trivial way to set up and run.
+currently works only on Linux and have non-trivial way to set up and run.
 
 ## Installation on Linux
 
@@ -51,14 +51,14 @@ B: ABS=3003f
 B: MSC=10
 ```
 
-If you don't see any entries for "Sony Interactive Entertainment something something..." and you are sure your USB cable is good, then go mess around with your kernel and find a way to enable DS4 support in the kernel.
+If you don't see any entries for "Sony Interactive Entertainment something something..." and you are sure that your USB cable is good, then go mess around with your kernel and find a way to enable DS4 support in the kernel.
 
-The line `H: Handlers=js0 event23` is what wee need. `event23` is the gamepad device. You may end up with different event number. You must use it in the following commands instead of `event23`.
+The line `H: Handlers=js0 event23` is what we need. `event23` is the gamepad event source that is gonna be intercepted and substituted but the program. You may end up with different number in this file name. You must use the proper file name you've got from `/proc/bus/input/devices` in the following commands instead of `event23`.
 
-Once again, if you are planning to use virtual keyboard as `user`, run this as root:
+Once again, if you are planning to use virtual keyboard as `user`, run this as root, to allow `user` to access the event source:
 
 ```
-chown user:user -R /dev/input/event23
+chown user:user /dev/input/event23
 ```
 
 Then run the program like this:
@@ -76,6 +76,8 @@ TODO: Describe how to run when the gamepad is connected via Bluetooth
 Now you can issue keyboard keypresses by pressing some combinations of the gamepad buttons as shown in the following chart:
 
 ![Key mapping](layout.svg)
+
+The key press is registered when you let go at least one of the buttons in the combination (chord) you pressed. So you first press the desired chord and then release all the buttons to commit a keypress that corresponds to the chord.
 
 ## Meta
 
