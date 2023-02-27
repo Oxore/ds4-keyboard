@@ -17,6 +17,43 @@ make
 
 It will produce a binary named `main`.
 
+## Connect via Bluetooth or USB
+
+You can connect your DS4 gamepad to your PC either with USB cable or Bluetooth wireless connection. USB is just works, skip to the next section if you are gonna use USB. Here is some guidance for getting a Bluetooth connection.
+
+Run `bluetoothctl` from terminal. In `bluetoothctl` console enable scan. I usually do it like this:
+
+```
+scan on
+```
+
+You may need to enable power on the bluetooth controller, register a default
+agent and maybe some other things. Please refer to bluetoothctl documentation
+elsewhere (Arch wiki has pretty good article on this though).
+
+Then push "SHARE" and "PS" buttons on the gamepad simultaneously and hold them
+for a couple of seconds. The LED light on the controller must start flashing for
+short periods with long pauses (around 100ms of light to 1 second of darkness
+interval). After this you will see than bluetoothctl found the "Wireless
+Controller" device like this:
+
+```
+[NEW] Device D0:BC:C1:A2:BE:9F Wireless Controller
+```
+
+Go connect to it:
+
+```
+[bluetooth]# connect D0:BC:C1:A2:BE:9F
+Attempting to connect to D0:BC:C1:A2:BE:9F
+Connection successful
+[Wireless Controller]# devices
+Device D0:BC:C1:A2:BE:9F Wireless Controller
+[Wireless Controller]#
+```
+
+Perfect! We've got a connection.
+
 ## Run
 
 First of all you need to be able to open `/dev/uinput` as a user, unless you
@@ -27,12 +64,10 @@ to be able to run the virtual keyboard as user:
 chown user:user /dev/uinput
 ```
 
-### USB
-
-Open up a file `/proc/bus/input/events` with some text editor or viewer. For example:
+Read the content of a file `/proc/bus/input/events` to another file on the disk or pipe it to some text editor or viewer. For example:
 
 ```
-less /proc/bus/input/devices
+cat /proc/bus/input/devices | less
 ```
 
 Then find there an entry for `"Sony Interactive Entertainment Wireless Controller"`. It will look like this:
@@ -51,9 +86,9 @@ B: ABS=3003f
 B: MSC=10
 ```
 
-If you don't see any entries for "Sony Interactive Entertainment something something..." and you are sure that your USB cable is good, then go mess around with your kernel and find a way to enable DS4 support in the kernel.
+If you don't see any entries for "Sony Interactive Entertainment something something..." and you are sure that your USB cable is good or that you are definitely connected to the gamepad via bluetooth, then go mess around with your kernel config and find a way to enable DS4 support.
 
-The line `H: Handlers=js0 event23` is what we need. `event23` is the gamepad event source that is gonna be intercepted and substituted but the program. You may end up with different number in this file name. You must use the proper file name you've got from `/proc/bus/input/devices` in the following commands instead of `event23`.
+The line `H: Handlers=js0 event23` is what we need. `event23` is the gamepad event source name that is gonna be intercepted and substituted by the program. You may end up with different number with the word `event`. Anyway you must use the proper file name you've got from your `/proc/bus/input/devices` in the following commands instead of `event23`.
 
 Once again, if you are planning to use virtual keyboard as `user`, run this as root, to allow `user` to access the event source:
 
@@ -66,10 +101,6 @@ Then run the program like this:
 ```
 ./main /dev/input/event23
 ```
-
-### Bluetooth
-
-TODO: Describe how to run when the gamepad is connected via Bluetooth
 
 ## Usage 
 
