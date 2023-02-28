@@ -163,6 +163,19 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_UP | KMASK_LEFT,       .code = KEY_SCROLLLOCK },
     { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_DOWN | KMASK_RIGHT,    .code = KEY_PAUSE },
     { .first = SIDE_RIGHT,  .keys = KMASK_EAST | KMASK_NORTH | KMASK_RIGHT | KMASK_UP,      .code = KEY_SYSRQ },
+    /* Implicily used modifiers and other keys that must be registered via ioctl(UI_SET_EVBIT) */
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_LEFTSHIFT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_RIGHTSHIFT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_LEFTALT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_RIGHTALT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_LEFTCTRL },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_RIGHTCTRL },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_LEFTMETA },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_RIGHTMETA },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_LEFT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_RIGHT },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_UP },
+    { .first = SIDE_NO,     .keys = 0,  .code = KEY_DOWN },
 };
 
 bool should_stop = false;
