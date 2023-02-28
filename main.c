@@ -192,8 +192,17 @@ static void setup_output_device(int fd) {
      * created, to pass key events, in this case the space key.
      */
     ioctl(fd, UI_SET_EVBIT, EV_KEY);
-    for (ssize_t i = 1; i < KEY_MAX; i++)
-        ioctl(fd, UI_SET_KEYBIT, i);
+    for (ssize_t i = 1; i < MAPPINGS_NUM; i++) {
+        if (-1 == ioctl(fd, UI_SET_KEYBIT, g_mapping[i].code)) {
+            fprintf(
+                    stderr,
+                    "ioctl(%d, UI_SET_KEYBIT, %u) = -1, errno=%d: ",
+                    fd,
+                    g_mapping[i].code,
+                    errno);
+            perror("");
+        }
+    }
     struct uinput_setup usetup;
     memset(&usetup, 0, sizeof(usetup));
     usetup.id.bustype = BUS_USB;
