@@ -199,7 +199,8 @@ static void sigint_handler(int _value)
     kill(0, SIGINT);
 }
 
-static void setup_output_device(int fd) {
+static void setup_output_device(int fd)
+{
     /*
      * The ioctls below will enable the device that is about to be
      * created, to pass key events, in this case the space key.
@@ -261,7 +262,8 @@ static void emulate_key(int ofd, int code)
     emulate_key_release(ofd, code);
 }
 
-static enum side which_side_key(struct input_event ev) {
+static enum side which_side_key(struct input_event ev)
+{
     if (ev.type == EV_KEY) {
         switch (ev.code) {
         case BTN_SOUTH:
@@ -282,11 +284,13 @@ static enum side which_side_key(struct input_event ev) {
     return SIDE_NO;
 }
 
-static enum side which_side_state(struct state state) {
+static enum side which_side_state(struct state state)
+{
     return (state.keys >> KMASK_SIDE_SHIFT) & 3;
 }
 
-static struct state keypress(struct state state, struct input_event ev, int ofd) {
+static struct state keypress(struct state state, struct input_event ev, int ofd)
+{
     printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (which_side_state(state) == SIDE_NO) {
         const enum side side = which_side_key(ev);
@@ -396,7 +400,8 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
     return state;
 }
 
-static struct state keyrelease(struct state state, struct input_event ev, int ofd) {
+static struct state keyrelease(struct state state, struct input_event ev, int ofd)
+{
     printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (state.keys & KMASK_PRESSED) {
         for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
