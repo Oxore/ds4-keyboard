@@ -76,10 +76,11 @@ enum keys_mask {
 
 struct state {
     uint32_t keys; // keys_mask
+    bool keyboard_mode;
 };
 
 #define MAPPINGS_NUM 105
-struct mapping g_mapping[MAPPINGS_NUM] = {
+static struct mapping g_mapping[MAPPINGS_NUM] = {
     /* Right single */
     { .first = SIDE_RIGHT,  .keys = KMASK_WEST,     .code = KEY_BACKSPACE },
     { .first = SIDE_RIGHT,  .keys = KMASK_SOUTH,    .code = KEY_ENTER },
@@ -178,19 +179,40 @@ struct mapping g_mapping[MAPPINGS_NUM] = {
     { .first = SIDE_NO,     .keys = 0,  .code = KEY_DOWN },
 };
 
-bool should_stop = false;
-int ifd = -1;
+static bool g_should_stop = false;
+static int g_ifd = -1;
+struct state g_state = {0};
+
+static void grab(int ifd)
+{
+    int ret = ioctl(ifd, EVIOCGRAB, (void *)1);
+    int err = errno;
+    if (ret != 0) {
+        fprintf(stderr, "Grab failed: ioctl(ifd, EVIOCGRAB, 1), err=%d: %s", err, strerror(err));
+        exit(1);
+    }
+}
+
+static void ungrab(int ifd)
+{
+    int ret = ioctl(ifd, EVIOCGRAB, (void *)0);
+    int err = errno;
+    if (ret != 0) {
+        fprintf(stderr, "Ungrab failed: ioctl(ifd, EVIOCGRAB, 0), err=%d: %s", err, strerror(err));
+        exit(1);
+    }
+}
 
 static void sigint_handler(int _value)
 {
     (void) _value;
-    should_stop = true;
+    g_should_stop = true;
     printf("Received SIGINT, quitting...\n");
-    {
-        int ret = ioctl(ifd, EVIOCGRAB, (void *)0);
+    if (g_state.keyboard_mode) {
+        int ret = ioctl(g_ifd, EVIOCGRAB, (void *)0);
         if (ret != 0) {
             fprintf(stderr, "Ungrab failed: ");
-            perror("ioctl(ifd, EVIOCGRAB, 0)");
+            perror("ioctl(g_ifd, EVIOCGRAB, 0)");
             exit(1);
         }
     }
@@ -289,8 +311,42 @@ static enum side which_side_state(struct state state)
     return (state.keys >> KMASK_SIDE_SHIFT) & 3;
 }
 
+static struct state release_all(int ofd, struct state state)
+{
+    if (state.keys & KMASK_LT) {
+        emulate_key_release(ofd, KEY_LEFTCTRL);
+    }
+    if (state.keys & KMASK_RT) {
+        emulate_key_release(ofd, KEY_LEFTSHIFT);
+    }
+    if (state.keys & KMASK_LB) {
+        emulate_key_release(ofd, KEY_LEFTMETA);
+    }
+    if (state.keys & KMASK_RB) {
+        emulate_key_release(ofd, KEY_LEFTALT);
+    }
+    if (state.keys & KMASK_THUMBL_LEFT)
+        emulate_key_release(ofd, KEY_LEFT);
+    else if (state.keys & KMASK_THUMBL_RIGHT)
+        emulate_key_release(ofd, KEY_RIGHT);
+    if (state.keys & KMASK_THUMBL_UP)
+        emulate_key_release(ofd, KEY_UP);
+    else if (state.keys & KMASK_THUMBL_DOWN)
+        emulate_key_release(ofd, KEY_DOWN);
+    state.keys = 0;
+    return state;
+}
+
 static struct state keypress(struct state state, struct input_event ev, int ofd)
 {
+    if (state.keyboard_mode == false) {
+        if (ev.type == EV_KEY && ev.code == BTN_MODE) {
+            state.keyboard_mode = true;
+            grab(g_ifd);
+            printf("Keyboard mode on\n");
+        }
+        return state;
+    }
     printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (which_side_state(state) == SIDE_NO) {
         const enum side side = which_side_key(ev);
@@ -317,23 +373,31 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             break;
         case BTN_TL2:
             // Control
-            state.keys |= KMASK_LT;
-            emulate_key_press(ofd, KEY_LEFTCTRL);
+            if (state.keyboard_mode) {
+                state.keys |= KMASK_LT;
+                emulate_key_press(ofd, KEY_LEFTCTRL);
+            }
             break;
         case BTN_TR2:
             // Shift
-            state.keys |= KMASK_RT;
-            emulate_key_press(ofd, KEY_LEFTSHIFT);
+            if (state.keyboard_mode) {
+                state.keys |= KMASK_RT;
+                emulate_key_press(ofd, KEY_LEFTSHIFT);
+            }
             break;
         case BTN_TL:
             // Super
-            state.keys |= KMASK_LB;
-            emulate_key_press(ofd, KEY_LEFTMETA);
+            if (state.keyboard_mode) {
+                state.keys |= KMASK_LB;
+                emulate_key_press(ofd, KEY_LEFTMETA);
+            }
             break;
         case BTN_TR:
             // Alt
-            state.keys |= KMASK_RB;
-            emulate_key_press(ofd, KEY_LEFTALT);
+            if (state.keyboard_mode) {
+                state.keys |= KMASK_RB;
+                emulate_key_press(ofd, KEY_LEFTALT);
+            }
             break;
         case BTN_SELECT:
             state.keys |= KMASK_SHARE;
@@ -342,10 +406,13 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             state.keys |= KMASK_OPTIONS;
             break;
         case BTN_MODE:
-            state.keys |= KMASK_PS;
+            state.keyboard_mode = false;
+            state = release_all(ofd, state);
+            ungrab(g_ifd);
+            printf("Keyboard mode off\n");
             break;
         };
-    } else if (ev.type == EV_ABS) {
+    } else if (state.keyboard_mode && ev.type == EV_ABS) {
         /*
          * d-pad is EV_ABS
          * left-right: code ABS_HAT0X, left=-1, right=1
@@ -402,6 +469,9 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
 
 static struct state keyrelease(struct state state, struct input_event ev, int ofd)
 {
+    if (state.keyboard_mode == false) {
+        return state;
+    }
     printf("<- %s, code=%u, value=%d\n", ev.type == EV_KEY ? "EV_KEY" : "EV_ABS", ev.code, ev.value);
     if (state.keys & KMASK_PRESSED) {
         for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
@@ -432,29 +502,39 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
             break;
         case BTN_TL2:
             // Control
+            if (state.keys & KMASK_LT) {
+                emulate_key_release(ofd, KEY_LEFTCTRL);
+            }
             state.keys &= ~KMASK_LT;
-            emulate_key_release(ofd, KEY_LEFTCTRL);
             break;
         case BTN_TR2:
             // Shift
+            if (state.keys & KMASK_RT) {
+                emulate_key_release(ofd, KEY_LEFTSHIFT);
+            }
             state.keys &= ~KMASK_RT;
-            emulate_key_release(ofd, KEY_LEFTSHIFT);
             break;
         case BTN_TL:
             // Super
+            if (state.keys & KMASK_LB) {
+                emulate_key_release(ofd, KEY_LEFTMETA);
+            }
             state.keys &= ~KMASK_LB;
-            emulate_key_release(ofd, KEY_LEFTMETA);
             break;
         case BTN_TR:
             // Alt
+            if (state.keys & KMASK_RB) {
+                emulate_key_release(ofd, KEY_LEFTALT);
+            }
             state.keys &= ~KMASK_RB;
-            emulate_key_release(ofd, KEY_LEFTALT);
             break;
         case BTN_SELECT:
             state.keys &= ~KMASK_SHARE;
             break;
         case BTN_START:
             state.keys &= ~KMASK_OPTIONS;
+            break;
+        case BTN_MODE:
             break;
         };
     } else if (ev.type == EV_ABS) {
@@ -500,19 +580,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
     const char *input_path = argv[1];
-    ifd = open(input_path, O_RDONLY);
-    if (ifd == -1) {
+    g_ifd = open(input_path, O_RDONLY);
+    if (g_ifd == -1) {
         fprintf(stderr, "\"%s\": ", input_path);
         perror("open");
         exit(1);
-    }
-    {
-        int ret = ioctl(ifd, EVIOCGRAB, (void *)1);
-        if (ret != 0) {
-            fprintf(stderr, "Grab failed: ");
-            perror("ioctl(ifd, EVIOCGRAB, 1)");
-            exit(1);
-        }
     }
     int ofd = open("/dev/uinput", O_WRONLY);
     if (ofd == -1) {
@@ -524,12 +596,11 @@ int main(int argc, char *argv[])
 
     setup_output_device(ofd);
 
-    struct state state = {0};
     int8_t abs_previous[ABS_CNT] = {0};
 
-    while (!should_stop) {
+    while (!g_should_stop) {
         struct input_event ev;
-        ssize_t ret = read(ifd, &ev, sizeof(ev));
+        ssize_t ret = read(g_ifd, &ev, sizeof(ev));
         if (ret == -1) {
             perror("read");
             exit(1);
@@ -537,9 +608,9 @@ int main(int argc, char *argv[])
         switch (ev.type) {
         case EV_KEY:
             if (ev.value == 1) {
-                state = keypress(state, ev, ofd);
+                g_state = keypress(g_state, ev, ofd);
             } else if (ev.value == 0) {
-                state = keyrelease(state, ev, ofd);
+                g_state = keyrelease(g_state, ev, ofd);
             }
             break;
         case EV_ABS:
@@ -550,9 +621,9 @@ int main(int argc, char *argv[])
              */
             if (ev.code == ABS_HAT0X || ev.code == ABS_HAT0Y) {
                 if (ev.value == 1 || ev.value == -1) {
-                    state = keypress(state, ev, ofd);
+                    g_state = keypress(g_state, ev, ofd);
                 } else if (ev.value == 0) {
-                    state = keyrelease(state, ev, ofd);
+                    g_state = keyrelease(g_state, ev, ofd);
                 }
             } else if (ev.code == ABS_X || ev.code == ABS_Y || ev.code == ABS_RX || ev.code == ABS_RY) {
                 /*
@@ -576,13 +647,13 @@ int main(int argc, char *argv[])
                         if (abs_previous[ev.code] != 0) {
                             const int8_t value = ev.value;
                             ev.value = 0;
-                            state = keyrelease(state, ev, ofd);
+                            g_state = keyrelease(g_state, ev, ofd);
                             ev.value = value;
                         }
-                        state = keypress(state, ev, ofd);
+                        g_state = keypress(g_state, ev, ofd);
                         abs_previous[ev.code] = ev.value;
                     } else if (ev.value == 0) {
-                        state = keyrelease(state, ev, ofd);
+                        g_state = keyrelease(g_state, ev, ofd);
                         abs_previous[ev.code] = ev.value;
                     }
                 }

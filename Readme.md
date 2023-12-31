@@ -123,7 +123,7 @@ udevadm control --reload-rules && udevadm trigger
 
 ## Usage
 
-Now you can issue keyboard keypresses by pressing some combinations of the gamepad buttons as shown in the following chart:
+The program starts in non-keyboard mode. Press the "PS" button (round one in the middle) to switch to the keyboard mode. Now you can issue keyboard keypresses by pressing some combinations of the gamepad buttons as shown in the following chart:
 
 ![Key mapping](layout.svg)
 
