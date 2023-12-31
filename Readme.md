@@ -90,7 +90,7 @@ If you don't see any entries for "Sony Interactive Entertainment something somet
 
 The line `H: Handlers=js0 event23` is what we need. `event23` is the gamepad event source name that is gonna be intercepted and substituted by the program. You may end up with different number with the word `event`. Anyway you must use the proper file name you've got from your `/proc/bus/input/devices` in the following commands instead of `event23`.
 
-Once again, if you are planning to use virtual keyboard as `user`, run this as root, to allow `user` to access the event source:
+Once again, if you are planning to use virtual keyboard as `user`, you must make sure the `/dev/input/event23` file is accessible by the `user`. Usually `/dev/input/event*` files have group set to `input`, so if you add `user` to the `input` group, you will be fine. Otherwise you may just change the owner of the file to be your `user` like this (run as root):
 
 ```
 chown user:user /dev/input/event23
