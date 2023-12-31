@@ -54,7 +54,7 @@ Device D0:BC:C1:A2:BE:9F Wireless Controller
 
 Perfect! We've got a connection.
 
-## Run
+## Run manually
 
 First of all you need to be able to open `/dev/uinput` as a user, unless you
 decided to do everything from root. Do this for your `user` as root if you want
@@ -102,7 +102,26 @@ Then run the program like this:
 ./main /dev/input/event23
 ```
 
-## Usage 
+## Run automatically via udev
+
+If you want to run the program every time you connect the gamepad the following instruction may help. Or may not, who knows. At least it worked out for me.
+
+Copy `ds4-keyboard-udev-autorun.sh` and `main` files from this repo somewhere to be convenient for you. For example I put them both in `/etc/udev/rules.d` directory.
+
+Create a file `/etc/udev/rules.d/50-ds4.rules` and add the following contents:
+
+```
+SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", RUN+="/etc/udev/rules.d/ds4-keyboard-udev-autorun.sh $devpath /etc/udev/rules.d/main"
+SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", RUN+="/etc/udev/rules.d/ds4-keyboard-udev-autorun.sh $devpath /etc/udev/rules.d/main"
+```
+
+To make `udev` use new rules and re-trigger events to execute them right away without rebooting, you can run the following command as root:
+
+```
+udevadm control --reload-rules && udevadm trigger
+```
+
+## Usage
 
 Now you can issue keyboard keypresses by pressing some combinations of the gamepad buttons as shown in the following chart:
 
