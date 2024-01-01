@@ -249,39 +249,35 @@ static void setup_output_device(int fd)
     ioctl(fd, UI_DEV_CREATE);
 }
 
-static void emit(int fd, int type, int code, int val)
+static void emit(int fd, int type, int code, int val, struct timeval timestamp)
 {
     struct input_event ie = {
         .type = type,
         .code = code,
         .value = val,
-        // TODO timestamp?
-        .time = {
-            .tv_sec = 0,
-            .tv_usec = 0,
-        },
+        .time = timestamp,
     };
     write(fd, &ie, sizeof(ie));
 }
 
-static void emulate_key_press(int ofd, int code)
+static void emulate_key_press(int ofd, int code, struct timeval timestamp)
 {
-    emit(ofd, EV_KEY, code, 1);
-    emit(ofd, EV_SYN, SYN_REPORT, 0);
+    emit(ofd, EV_KEY, code, 1, timestamp);
+    emit(ofd, EV_SYN, SYN_REPORT, 0, timestamp);
     printf("-> EV_KEY, code=%u, value=%d\n", code, 1);
 }
 
-static void emulate_key_release(int ofd, int code)
+static void emulate_key_release(int ofd, int code, struct timeval timestamp)
 {
-    emit(ofd, EV_KEY, code, 0);
-    emit(ofd, EV_SYN, SYN_REPORT, 0);
+    emit(ofd, EV_KEY, code, 0, timestamp);
+    emit(ofd, EV_SYN, SYN_REPORT, 0, timestamp);
     printf("-> EV_KEY, code=%u, value=%d\n", code, 0);
 }
 
-static void emulate_key(int ofd, int code)
+static void emulate_key(int ofd, int code, struct timeval timestamp)
 {
-    emulate_key_press(ofd, code);
-    emulate_key_release(ofd, code);
+    emulate_key_press(ofd, code, timestamp);
+    emulate_key_release(ofd, code, timestamp);
 }
 
 static enum side which_side_key(struct input_event ev)
@@ -311,28 +307,28 @@ static enum side which_side_state(struct state state)
     return (state.keys >> KMASK_SIDE_SHIFT) & 3;
 }
 
-static struct state release_all(int ofd, struct state state)
+static struct state release_all(int ofd, struct state state, struct timeval timestamp)
 {
     if (state.keys & KMASK_LT) {
-        emulate_key_release(ofd, KEY_LEFTCTRL);
+        emulate_key_release(ofd, KEY_LEFTCTRL, timestamp);
     }
     if (state.keys & KMASK_RT) {
-        emulate_key_release(ofd, KEY_LEFTSHIFT);
+        emulate_key_release(ofd, KEY_LEFTSHIFT, timestamp);
     }
     if (state.keys & KMASK_LB) {
-        emulate_key_release(ofd, KEY_LEFTMETA);
+        emulate_key_release(ofd, KEY_LEFTMETA, timestamp);
     }
     if (state.keys & KMASK_RB) {
-        emulate_key_release(ofd, KEY_LEFTALT);
+        emulate_key_release(ofd, KEY_LEFTALT, timestamp);
     }
     if (state.keys & KMASK_THUMBL_LEFT)
-        emulate_key_release(ofd, KEY_LEFT);
+        emulate_key_release(ofd, KEY_LEFT, timestamp);
     else if (state.keys & KMASK_THUMBL_RIGHT)
-        emulate_key_release(ofd, KEY_RIGHT);
+        emulate_key_release(ofd, KEY_RIGHT, timestamp);
     if (state.keys & KMASK_THUMBL_UP)
-        emulate_key_release(ofd, KEY_UP);
+        emulate_key_release(ofd, KEY_UP, timestamp);
     else if (state.keys & KMASK_THUMBL_DOWN)
-        emulate_key_release(ofd, KEY_DOWN);
+        emulate_key_release(ofd, KEY_DOWN, timestamp);
     state.keys = 0;
     return state;
 }
@@ -375,28 +371,28 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             // Control
             if (state.keyboard_mode) {
                 state.keys |= KMASK_LT;
-                emulate_key_press(ofd, KEY_LEFTCTRL);
+                emulate_key_press(ofd, KEY_LEFTCTRL, ev.time);
             }
             break;
         case BTN_TR2:
             // Shift
             if (state.keyboard_mode) {
                 state.keys |= KMASK_RT;
-                emulate_key_press(ofd, KEY_LEFTSHIFT);
+                emulate_key_press(ofd, KEY_LEFTSHIFT, ev.time);
             }
             break;
         case BTN_TL:
             // Super
             if (state.keyboard_mode) {
                 state.keys |= KMASK_LB;
-                emulate_key_press(ofd, KEY_LEFTMETA);
+                emulate_key_press(ofd, KEY_LEFTMETA, ev.time);
             }
             break;
         case BTN_TR:
             // Alt
             if (state.keyboard_mode) {
                 state.keys |= KMASK_RB;
-                emulate_key_press(ofd, KEY_LEFTALT);
+                emulate_key_press(ofd, KEY_LEFTALT, ev.time);
             }
             break;
         case BTN_SELECT:
@@ -407,7 +403,7 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             break;
         case BTN_MODE:
             state.keyboard_mode = false;
-            state = release_all(ofd, state);
+            state = release_all(ofd, state, ev.time);
             ungrab(g_ifd);
             printf("Keyboard mode off\n");
             break;
@@ -436,19 +432,19 @@ static struct state keypress(struct state state, struct input_event ev, int ofd)
             }
         } else if (ev.code == ABS_X) {
             if (ev.value == -1) {
-                emulate_key_press(ofd, KEY_LEFT);
+                emulate_key_press(ofd, KEY_LEFT, ev.time);
                 state.keys |= KMASK_THUMBL_LEFT;
             } else if (ev.value == 1) {
-                emulate_key_press(ofd, KEY_RIGHT);
+                emulate_key_press(ofd, KEY_RIGHT, ev.time);
                 state.keys |= KMASK_THUMBL_RIGHT;
             }
         } else if (ev.code == ABS_Y) {
             if (ev.value == -1) {
-                emulate_key_press(ofd, KEY_UP);
+                emulate_key_press(ofd, KEY_UP, ev.time);
                 state.keys |= KMASK_THUMBL_UP;
             } else if (ev.value == 1) {
-                emulate_key_press(ofd, KEY_DOWN);
-                state.keys |= KMASK_THUMBL_DOWN;
+                    emulate_key_press(ofd, KEY_DOWN, ev.time);
+                    state.keys |= KMASK_THUMBL_DOWN;
             }
         } else if (ev.code == ABS_RX) {
             if (ev.value == -1) {
@@ -478,7 +474,7 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
             struct mapping mapping = g_mapping[i];
             if (mapping.code && mapping.first == which_side_state(state) &&
                     (state.keys & KMASK_CHORD_KEYS) == mapping.keys) {
-                emulate_key(ofd, mapping.code);
+                emulate_key(ofd, mapping.code, ev.time);
             }
         }
     }
@@ -503,28 +499,28 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
         case BTN_TL2:
             // Control
             if (state.keys & KMASK_LT) {
-                emulate_key_release(ofd, KEY_LEFTCTRL);
+                emulate_key_release(ofd, KEY_LEFTCTRL, ev.time);
             }
             state.keys &= ~KMASK_LT;
             break;
         case BTN_TR2:
             // Shift
             if (state.keys & KMASK_RT) {
-                emulate_key_release(ofd, KEY_LEFTSHIFT);
+                emulate_key_release(ofd, KEY_LEFTSHIFT, ev.time);
             }
             state.keys &= ~KMASK_RT;
             break;
         case BTN_TL:
             // Super
             if (state.keys & KMASK_LB) {
-                emulate_key_release(ofd, KEY_LEFTMETA);
+                emulate_key_release(ofd, KEY_LEFTMETA, ev.time);
             }
             state.keys &= ~KMASK_LB;
             break;
         case BTN_TR:
             // Alt
             if (state.keys & KMASK_RB) {
-                emulate_key_release(ofd, KEY_LEFTALT);
+                emulate_key_release(ofd, KEY_LEFTALT, ev.time);
             }
             state.keys &= ~KMASK_RB;
             break;
@@ -553,15 +549,15 @@ static struct state keyrelease(struct state state, struct input_event ev, int of
             state.keys &= ~KMASK_PRESSED;
         } else if (ev.code == ABS_X) {
             if (state.keys & KMASK_THUMBL_LEFT)
-                emulate_key_release(ofd, KEY_LEFT);
+                emulate_key_release(ofd, KEY_LEFT, ev.time);
             else if (state.keys & KMASK_THUMBL_RIGHT)
-                emulate_key_release(ofd, KEY_RIGHT);
+                emulate_key_release(ofd, KEY_RIGHT, ev.time);
             state.keys &= ~(KMASK_THUMBL_LEFT | KMASK_THUMBL_RIGHT);
         } else if (ev.code == ABS_Y) {
             if (state.keys & KMASK_THUMBL_UP)
-                emulate_key_release(ofd, KEY_UP);
+                emulate_key_release(ofd, KEY_UP, ev.time);
             else if (state.keys & KMASK_THUMBL_DOWN)
-                emulate_key_release(ofd, KEY_DOWN);
+                emulate_key_release(ofd, KEY_DOWN, ev.time);
             state.keys &= ~(KMASK_THUMBL_UP | KMASK_THUMBL_DOWN);
         } else if (ev.code == ABS_RX) {
             state.keys &= ~(KMASK_THUMBR_LEFT | KMASK_THUMBR_RIGHT);
