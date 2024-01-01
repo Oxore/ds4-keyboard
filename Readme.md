@@ -127,7 +127,7 @@ The program starts in non-keyboard mode. Press the "PS" button (round one in the
 
 ![Key mapping](layout.svg)
 
-The key press is registered when you let go at least one of the buttons in the combination (chord) you pressed. So you first press the desired chord and then release all the buttons to commit a keypress that corresponds to the chord.
+The key press is registered when you let go of at least one of the buttons in the combination (chord) you pressed. So you first press the desired chord and then release all the buttons to commit a key press.
 
 ## Meta
 
