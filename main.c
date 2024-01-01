@@ -228,7 +228,7 @@ static void setup_output_device(int fd)
      * created, to pass key events, in this case the space key.
      */
     ioctl(fd, UI_SET_EVBIT, EV_KEY);
-    for (ssize_t i = 1; i < MAPPINGS_NUM; i++) {
+    for (ssize_t i = 0; i < MAPPINGS_NUM; i++) {
         if (-1 == ioctl(fd, UI_SET_KEYBIT, g_mapping[i].code)) {
             fprintf(
                     stderr,
